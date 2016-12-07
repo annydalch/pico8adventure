@@ -4,6 +4,8 @@ __lua__
 function _init()
  cartdata("anydalch_adventure_0")
  menuitem(1,"save adventure",savegame)
+ player.x = peek(0x5e00)
+ player.y = peek(0x5e01)
 end
 
 function _draw()
@@ -16,8 +18,8 @@ function _update()
 end
 
 function savegame()
- dset(0,player.x)
- dset(1,player.y)
+ poke(0x5e00,player.x)
+ poke(0x5e01,player.y)
 end
 
 player = {}
@@ -34,8 +36,6 @@ player.direction = 0
 player.counter = 0
 player.dx = 0
 player.dy = 0
-player.x = dget(0) or 64
-player.y = dget(1) or 64
 player.draw = function()
   spr((player.direction*16)+player.state+flr(player.counter),
    player.x,
@@ -68,6 +68,8 @@ player.update = function()
   player.dy = newdy
   player.x += player.dx
   player.y += player.dy
+  player.x %= 127
+  player.y %= 127
 end
 
 
