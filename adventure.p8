@@ -1,7 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
-actors = {}
+function _init()
+ cartdata("anydalch_adventure_0")
+ menuitem(1,"save adventure",savegame)
+end
 
 function _draw()
  cls()
@@ -10,6 +13,11 @@ end
 
 function _update()
  player.update()
+end
+
+function savegame()
+ dset(0,player.x)
+ dset(1,player.y)
 end
 
 player = {}
@@ -26,8 +34,8 @@ player.direction = 0
 player.counter = 0
 player.dx = 0
 player.dy = 0
-player.x = 64
-player.y = 64
+player.x = dget(0) or 64
+player.y = dget(1) or 64
 player.draw = function()
   spr((player.direction*16)+player.state+flr(player.counter),
    player.x,
@@ -42,9 +50,9 @@ player.update = function()
   if (btn(3)) newdy += 1
   if (newdx == 0) newdy *= 2
   if (newdy == 0) newdx *= 2
-  if (newdx == player.dx and newdy == player.dy) then
+  if (newdx == player.dx and newdy == player.dy and player.state != 0) then
     player.counter += .2
-    player.counter %= 4
+    player.counter %= 3
   elseif (newdx == 0 and newdy == 0) then
     player.state = 0
     player.counter = 0
