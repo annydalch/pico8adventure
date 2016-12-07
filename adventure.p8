@@ -5,59 +5,63 @@ actors = {}
 
 function _draw()
  cls()
- foreach(actors,drawactor)
+ player.draw()
 end
 
 function _update()
- for i=1,#actors do
-  actors[i].update(actors[i])
- end
+ player.update()
 end
 
-function drawactor(actor)
- if (actor.dir>1) then
-  flipy=true
- else
-  flipy=false
- end
- if ((actor.dir%2)>0) then
-  flipx=true
- else
-  flipy=false
- end
- spr(actor.sprite,actor.pos.x,actor.pos.y,actor.size.width,actor.size.height,flipx,flipy)
+player = {}
+player.restingsprites = {0,16,32,48}
+player.movingsprites = {{0,1,2,3},
+                        {16,17,18,19},
+                        {32,33,34,35},
+                        {48,49,50,51}}
+--0:resting 1:moving
+player.state = 0
+--0:right, cw until 3
+player.direction = 0
+--used for frames and stuff
+player.counter = 0
+player.dx = 0
+player.dy = 0
+player.x = 64
+player.y = 64
+player.draw = function()
+  spr((player.direction*16)+player.state+flr(player.counter),
+   player.x,
+   player.y)
+end
+player.update = function()
+  local newdx = 0
+  local newdy = 0
+  if (btn(0)) newdx -= 1
+  if (btn(1)) newdx += 1
+  if (btn(2)) newdy -= 1
+  if (btn(3)) newdy += 1
+  if (newdx == 0) newdy *= 2
+  if (newdy == 0) newdx *= 2
+  if (newdx == player.dx and newdy == player.dy) then
+    player.counter += .2
+    player.counter %= 4
+  elseif (newdx == 0 and newdy == 0) then
+    player.state = 0
+    player.counter = 0
+  else
+   player.state = 1
+   player.counter = 0
+   if (newdx < 0) player.direction = 2
+   if (newdy < 0) player.direction = 1
+   if (newdx > 0) player.direction = 0
+   if (newdy > 0) player.direction = 3
+  end
+  player.dx = newdx
+  player.dy = newdy
+  player.x += player.dx
+  player.y += player.dy
 end
 
-function actorc(x,y,update,width,height,sprites,dire,hbr,hbb)
---update should be a function which takes this object as an argument
---sprites should be a list of sprites
---width and height are arguments for spr(), telling how many sprites to blit, usually 1
---dire is direction: 0 for left, continue ccw
---hbr and hbb are the right and bottom margins of the hitbox
- local obj = {}
- obj.update = update
- obj.pos = {x=x,y=y}
- obj.dir = dire
- obj.sprites = sprites
- obj.spriteslen = #sprites
- obj.spriteindex = 0
- obj.sprite = obj.sprites[obj.spriteindex]
- obj.size = {width=width,height=height}
- obj.hitbox = {right=hbr,bottom=hbb}
- return obj
-end
-
-function playerupdate(this)
- this.spriteindex+=.1
- this.spriteindex%=this.spriteslen
- this.sprite=this.sprites[flr(this.spriteindex)+1]
- if (btn(0) and not btn(1)) this.pos.x-=2
- if (btn(1) and not btn(0)) this.pos.x+=2
- if (btn(2) and not btn(3)) this.pos.y-=2
- if (btn(3) and not btn(2)) this.pos.y+=2
-end
-player = actorc(64,64,playerupdate,1,1,{0,1,2},0,8,8)
-add(actors,player)
 
 __gfx__
 09999000099990000999900009999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
