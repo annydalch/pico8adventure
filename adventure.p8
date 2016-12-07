@@ -4,8 +4,14 @@ __lua__
 function _init()
  cartdata("anydalch_adventure_0")
  menuitem(1,"save adventure",savegame)
- player.x = peek(0x5e00)
- player.y = peek(0x5e01)
+ if (peek(0x5eff) != 0) then
+  player.x = peek(0x5e00)
+  player.y = peek(0x5e01)
+ else
+  poke(0x5eff,1)
+  player.x = 64
+  player.y = 64
+ end
 end
 
 function _draw()
