@@ -13,7 +13,7 @@ end
 
 textbox = {}
 textbox.active = false
-textbox.text = ""
+textbox.text = {}
 textbox.counter = 0
 textbox.x1 = 6
 textbox.y1 = 86
@@ -24,13 +24,16 @@ textbox.fgcolor = 6
 textbox.draw = function()
    rectfill(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.bgcolor)
    rect(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.fgcolor)
-   print(textbox.text, textbox.x1 + 4, textbox.y1 + 4, textbox.fgcolor)
+   for index,text in pairs(textbox.text) do
+      print(text, textbox.x1 + 4, textbox.y1 + 4 + 6*index, textbox.fgcolor)
+   end
 end
 textbox.update = function()
    textbox.counter -= 1
    if (textbox.counter == 0) textbox.active = false
 end
-textbox.make = function(frames, text)
+textbox.make = function(frames, text) --[[text should be an array of strings not exceeding 27 chars
+   and at most 3 lines]]
    textbox.active = true
    textbox.text = text
    textbox.counter = frames
@@ -61,7 +64,7 @@ function _update()
    player.update()
    if (textbox.active) textbox.update()
    if (btnp(4)) player.health -= 1
-   if (btnp(5)) textbox.make(30, "value")
+   if (btnp(5)) textbox.make(30, {"value", "is", "king"})
 end
 
 function savegame()
