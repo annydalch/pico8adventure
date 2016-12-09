@@ -90,6 +90,39 @@ function deletesave()
    poke(0x5eff,0)
 end
 
+function usesword()
+   sword.active = true
+   sword.counter = sword.swingtime
+end
+
+function initsword()
+   sword = {}
+   sword.length = 7
+   sword.active = false
+   sword.counter = 0
+   sword.swingtime = 6
+   sword.rightsprite = function(x,y)
+      spr(21, x, y)
+   end
+   sword.leftsprite = function(x,y)
+      spr(21, x, y, 1, 1, true)
+   end
+   sword.upsprite = function(x,y)
+      spr(20, x, y)
+   end
+   sword.downsprite = function(x,y)
+      spr(20, x, y, 1, 1, true)
+   end
+   sword.draw = function()
+      if player.direction = 0 then
+	 sword.rightsprite(player.x+8,player.y)
+      end
+      if player.direction = 1 then
+	 sword.upsprite(player.x,player.y+1)
+      end
+   end
+   
+end
 function initvars()
    activescreen = {}
 end
@@ -103,7 +136,7 @@ function initplayer()
       {48,49,50,51}}
    --0:resting 1:moving
    player.state = 0
-   --0:right, cw until 3
+   --0:right, ccw until 3
    player.direction = 0
    --used for frames and stuff
    player.counter = 0
