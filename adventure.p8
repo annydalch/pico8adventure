@@ -6,6 +6,7 @@ function _init()
    initvars()
    initplayer()
    inittextbox()
+   initsword()
    menuitem(1,"save adventure",savegame)
    if (peek(0x5eff) != 0) then
       savedata()
@@ -19,12 +20,14 @@ function _draw()
    player.draw()
    player.drawhealth()
    if (textbox.active) textbox.draw()
+   if (sword.active) sword.draw()
 end
 
 function _update()
    player.update()
    if (textbox.active) textbox.update()
-   if (btnp(4)) player.health -= 1
+   if (btnp(4) and not sword.active) sword.use()
+   if (sword.active) sword.update()
    if (btnp(5)) textbox.make(30, {"value", "is", "king"})
 end
 
@@ -111,24 +114,39 @@ function initsword()
       spr(20, x, y)
    end
    sword.downsprite = function(x,y)
-      spr(20, x, y, 1, 1, true)
+      spr(20, x, y, 1, 1, false, true)
    end
    sword.draw = function()
-      if player.direction = 0 then
-	 sword.rightsprite(player.x+8,player.y)
+      if player.direction == 0 then
+	 sword.rightsprite(player.x + player.width,player.y)
       end
-      if player.direction = 1 then
-	 sword.upsprite(player.x,player.y+1)
+      if player.direction == 1 then
+	 sword.upsprite(player.x,player.y - sword.length - 1)
+      end
+      if player.direction == 2 then
+	 sword.leftsprite(player.x - sword.length, player.y)
+      end
+      if player.direction == 3 then
+	 sword.downsprite(player.x,player.y+8)
       end
    end
-   
+   sword.update = function()
+      sword.counter -= 1
+      if (sword.counter == 0) sword.active = false
+   end
+   sword.use = function()
+      sword.active = true
+      sword.counter = sword.swingtime
+   end
 end
+
 function initvars()
    activescreen = {}
 end
 
 function initplayer()
    player = {}
+   player.width = 6
    player.restingsprites = {0,16,32,48}
    player.movingsprites = {{0,1,2,3},
       {16,17,18,19},
