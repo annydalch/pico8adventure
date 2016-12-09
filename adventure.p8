@@ -2,46 +2,82 @@ pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
 function _init()
- cartdata("anydalch_adventure_0")
- menuitem(1,"save adventure",savegame)
- if (peek(0x5eff) != 0) then
-  player.x = peek(0x5e00)
-  player.y = peek(0x5e01)
-  player.maxhealth = peek(0x5e02)
-  player.health = peek(0x5e03)
- else
-  player.x = 64
-  player.y = 64
-  player.maxhealth = 3
-  player.health = player.maxhealth
- end
+   cartdata("anydalch_adventure_0")
+   menuitem(1,"save adventure",savegame)
+   if (peek(0x5eff) != 0) then
+      nosavedata()
+   else
+      savedata()
+   end
+end
+
+textbox = {}
+textbox.active = false
+textbox.text = ""
+textbox.counter = 0
+textbox.x1 = 6
+textbox.y1 = 86
+textbox.x2 = 122
+textbox.y2 = 122
+textbox.bgcolor = 5
+textbox.fgcolor = 6
+textbox.draw = function()
+   rectfill(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.bgcolor)
+   rect(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.fgcolor)
+   print(textbox.text, textbox.x1 + 4, textbox.y1 + 4, textbox.fgcolor)
+end
+textbox.update = function()
+   textbox.counter -= 1
+   if (textbox.counter == 0) textbox.active = false
+end
+textbox.make = function(frames, text)
+   textbox.active = true
+   textbox.text = text
+   textbox.counter = frames
+end
+
+function nosavedata()
+   player.x = peek(0x5e00)
+   player.y = peek(0x5e01)
+   player.maxhealth = peek(0x5e02)
+   player.health = peek(0x5e03)
+end
+
+function savedata()
+   player.x = 64
+   player.y = 64
+   player.maxhealth = 3
+   player.health = player.maxhealth
 end
 
 function _draw()
- cls()
- player.draw()
- player.drawhealth()
+   cls()
+   player.draw()
+   player.drawhealth()
+   if (textbox.active) textbox.draw()
 end
 
 function _update()
- player.update()
- if (btnp(4)) player.health -= 1
+   player.update()
+   if (textbox.active) textbox.update()
+   if (btnp(4)) player.health -= 1
+   if (btnp(5)) textbox.make(30, "value")
 end
 
 function savegame()
- poke(0x5e00,player.x)
- poke(0x5e01,player.y)
- poke(0x5e02,player.maxhealth)
- poke(0x5e03,player.health)
- poke(0x5eff,1)
+   poke(0x5e00,player.x)
+   poke(0x5e01,player.y)
+   poke(0x5e02,player.maxhealth)
+   poke(0x5e03,player.health)
+   poke(0x5eff,1)
 end
 
 player = {}
 player.restingsprites = {0,16,32,48}
 player.movingsprites = {{0,1,2,3},
-                        {16,17,18,19},
-                        {32,33,34,35},
-                        {48,49,50,51}}
+   {16,17,18,19},
+   {32,33,34,35},
+   {48,49,50,51}}
 --0:resting 1:moving
 player.state = 0
 --0:right, cw until 3
@@ -51,48 +87,48 @@ player.counter = 0
 player.dx = 0
 player.dy = 0
 player.draw = function()
-  spr((player.direction*16)+player.state+flr(player.counter),
-   player.x,
-   player.y)
+   spr((player.direction*16)+player.state+flr(player.counter),
+      player.x,
+      player.y)
 end
 player.update = function()
-  local newdx = 0
-  local newdy = 0
-  if (btn(0)) newdx -= 1
-  if (btn(1)) newdx += 1
-  if (btn(2)) newdy -= 1
-  if (btn(3)) newdy += 1
-  if (newdx == 0) newdy *= 2
-  if (newdy == 0) newdx *= 2
-  if (newdx == player.dx and newdy == player.dy and player.state != 0) then
-    player.counter += .2
-    player.counter %= 3
-  elseif (newdx == 0 and newdy == 0) then
-    player.state = 0
-    player.counter = 0
-  else
-   player.state = 1
-   player.counter = 0
-   if (newdx < 0) player.direction = 2
-   if (newdy < 0) player.direction = 1
-   if (newdx > 0) player.direction = 0
-   if (newdy > 0) player.direction = 3
-  end
-  player.dx = newdx
-  player.dy = newdy
-  player.x += player.dx
-  player.y += player.dy
-  player.x %= 127
-  player.y %= 127
+   local newdx = 0
+   local newdy = 0
+   if (btn(0)) newdx -= 1
+   if (btn(1)) newdx += 1
+   if (btn(2)) newdy -= 1
+   if (btn(3)) newdy += 1
+   if (newdx == 0) newdy *= 2
+   if (newdy == 0) newdx *= 2
+   if (newdx == player.dx and newdy == player.dy and player.state != 0) then
+      player.counter += .2
+      player.counter %= 3
+   elseif (newdx == 0 and newdy == 0) then
+      player.state = 0
+      player.counter = 0
+   else
+      player.state = 1
+      player.counter = 0
+      if (newdx < 0) player.direction = 2
+      if (newdy < 0) player.direction = 1
+      if (newdx > 0) player.direction = 0
+      if (newdy > 0) player.direction = 3
+   end
+   player.dx = newdx
+   player.dy = newdy
+   player.x += player.dx
+   player.y += player.dy
+   player.x %= 127
+   player.y %= 127
 end
 player.drawhealth = function()
-  for i=1,player.maxhealth do
-   if i <= player.health then
-    spr(4,(i*8)-7,1)
-   else
-    spr(5,(i*8)-7,1)
+   for i=1,player.maxhealth do
+      if i <= player.health then
+	 spr(4,(i*8)-7,1)
+      else
+	 spr(5,(i*8)-7,1)
+      end
    end
-  end
 end
 
 
