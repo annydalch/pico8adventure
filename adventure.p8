@@ -16,6 +16,7 @@ function _init()
 end
 
 function _draw()
+	  cls()
    map(activescreen.x * 16, activescreen.y * 16, 0, 0, 16, 16)
    player.draw()
    player.drawhealth()
@@ -93,11 +94,6 @@ function deletesave()
    poke(0x5eff,0)
 end
 
-function usesword()
-   sword.active = true
-   sword.counter = sword.swingtime
-end
-
 function initsword()
    sword = {}
    sword.length = 7
@@ -124,7 +120,7 @@ function initsword()
 	 sword.upsprite(player.x,player.y - sword.length - 1)
       end
       if player.direction == 2 then
-	 sword.leftsprite(player.x - sword.length, player.y)
+	 sword.leftsprite(player.x - sword.length - 1, player.y)
       end
       if player.direction == 3 then
 	 sword.downsprite(player.x,player.y+8)
