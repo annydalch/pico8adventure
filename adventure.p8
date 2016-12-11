@@ -16,20 +16,32 @@ function _init()
 end
 
 function _draw()
-	  cls()
+   cls()
    map(activescreen.x * 16, activescreen.y * 16, 0, 0, 16, 16)
-   player.draw()
+   drawentities()
    player.drawhealth()
    if (textbox.active) textbox.draw()
-   if (sword.active) sword.draw()
 end
 
 function _update()
-   player.update()
-   if (textbox.active) textbox.update()
+   if (textbox.active) then
+      textbox.update()
+   else
+      gameupdate()
+   end
+end
+
+function drawentities()
+   for thing in all(entities) do
+      thing.draw()
+   end
+end
+
+function gameupdate()
+   for thing in all(entities) do
+      thing.update()
+   end
    if (btnp(4) and not sword.active) sword.use()
-   if (sword.active) sword.update()
-   if (btnp(5)) textbox.make(30, {"value", "is", "king"})
 end
 
 function inittextbox()
@@ -128,20 +140,26 @@ function initsword()
    end
    sword.update = function()
       sword.counter -= 1
-      if (sword.counter == 0) sword.active = false
+      if (sword.counter == 0) then
+	 del(entities, sword)
+	 sword.active = false
+      end
    end
    sword.use = function()
       sword.active = true
+      add(entities, sword)
       sword.counter = sword.swingtime
    end
 end
 
 function initvars()
    activescreen = {}
+   entities = {}
 end
 
 function initplayer()
    player = {}
+   add(entities, player)
    player.width = 6
    player.restingsprites = {0,16,32,48}
    player.movingsprites = {{0,1,2,3},
