@@ -8,7 +8,9 @@ function _init()
    inittextbox()
    initsword()
    menuitem(1,"save adventure",savegame)
-   if (peek(0x5eff) != 0) then
+   if (peek(0x5eff) != 0) then --[[i use the last bit of the cartdata to mark if a save exists
+if it's nonzero then a save exists and should be loaded
+      otherwise init a new game]]
       savedata()
    else
       nosavedata()
@@ -16,16 +18,20 @@ function _init()
 end
 
 function _draw()
-   cls()
+   cls() --wouldn't be necessary if i had a whole map already
    map(activescreen.x * 16, activescreen.y * 16, 0, 0, 16, 16)
    drawentities()
    player.drawhealth()
-   if (textbox.active) textbox.draw()
+   drawmenus()
 end
 
 function _update()
-   if (textbox.active) then
-      textbox.update()
+   local listtest = false
+   for a,b in pairs(menus) do
+      listtest = true
+   end
+   if listtest then
+      menuupdate()
    else
       gameupdate()
    end
@@ -33,44 +39,73 @@ end
 
 function drawentities()
    for thing in all(entities) do
-      thing.draw()
+      thing.draw(thing)
    end
 end
 
 function gameupdate()
    for thing in all(entities) do
-      thing.update()
+      thing.update(thing)
    end
    if (btnp(4) and not sword.active) sword.use()
+   if (btnp(5)) textbox.make("good value is hard to find. i wish you luck on your quest.")
+end
+
+function menuupdate()
+   for thing in all(menus) do
+      thing.update(thing)
+   end
+end
+
+function drawmenus()
+   for thing in all(menus) do
+      thing.draw(thing)
+   end
 end
 
 function inittextbox()
    textbox = {}
-   textbox.active = false
-   textbox.text = {}
-   textbox.counter = 0
    textbox.x1 = 6
    textbox.y1 = 86
    textbox.x2 = 122
    textbox.y2 = 122
+   textbox.advx = 120
+   textbox.advy = 120
    textbox.bgcolor = 5
    textbox.fgcolor = 6
-   textbox.draw = function()
+   textbox.draw = function(self)
       rectfill(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.bgcolor)
       rect(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.fgcolor)
-      for index,text in pairs(textbox.text) do
-	 print(text, textbox.x1 + 4, textbox.y1 + 4 + 6*index, textbox.fgcolor)
+      for count=1,3 do
+	 local subtext = sub(self.activetext, ((count-1)*27)+1, count*27)
+	 print(subtext, textbox.x1 + 4, textbox.y1 + 4 + 6*count, textbox.fgcolor)
+      end
+      if self.counter == #self.fulltext then
+	 pset(textbox.advx, textbox.advy, textbox.fgcolor)
       end
    end
-   textbox.update = function()
-      textbox.counter -= 1
-      if (textbox.counter == 0) textbox.active = false
+   
+   textbox.update = function(self)
+      if self.counter < #self.fulltext then
+	 self.counter += 1
+	 self.activetext = sub(self.fulltext, 0, self.counter)
+      elseif btnp(4) then
+	 del(menus, self)
+      end
    end
-   textbox.make = function(frames, text) --[[text should be an array of strings not exceeding 27 chars
-      and at most 3 lines]]
-      textbox.active = true
-      textbox.text = text
-      textbox.counter = frames
+
+   textbox.new = function(text)
+      local this = {}
+      this.fulltext = text
+      this.activetext = ""
+      this.counter = 0
+      this.draw = textbox.draw
+      this.update = textbox.update
+      return this
+   end
+   
+   textbox.make = function(text)
+      add(menus, textbox.new(text))
    end
 end
 
@@ -124,6 +159,7 @@ function initsword()
    sword.downsprite = function(x,y)
       spr(20, x, y, 1, 1, false, true)
    end
+   
    sword.draw = function()
       if player.direction == 0 then
 	 sword.rightsprite(player.x + player.width,player.y)
@@ -138,6 +174,7 @@ function initsword()
 	 sword.downsprite(player.x,player.y+8)
       end
    end
+   
    sword.update = function()
       sword.counter -= 1
       if (sword.counter == 0) then
@@ -145,6 +182,7 @@ function initsword()
 	 sword.active = false
       end
    end
+   
    sword.use = function()
       sword.active = true
       add(entities, sword)
@@ -155,6 +193,7 @@ end
 function initvars()
    activescreen = {}
    entities = {}
+   menus = {}
 end
 
 function initplayer()
