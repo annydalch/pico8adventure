@@ -203,7 +203,7 @@ function initvars()
    menus = {}
 end
 
-function checkbuttons()
+function checkmovebuttons()
    local x = 0
    local y = 0
    if (btn(0)) then
@@ -218,35 +218,45 @@ function checkbuttons()
    if (btn(3)) then
       y += 1
    end
-   if (newdx == 0) then
+   if (x == 0) then
       y *= 2
    end
-   if (newdy == 0) then
+   if (y == 0) then
       x *= 2
    end
    return x,y
 end
 
-function playerupdate(self)
-   local newdx,newdy = checkbuttons()
-   if (newdx == player.dx and newdy == player.dy and player.state != 0) then
+function handleplayermovement(x,y)
+   if (x == player.dx and y == player.dy and player.state != 0) then
       player.counter += .2
       player.counter %= 3
-   elseif (newdx == 0 and newdy == 0) then
+   elseif (x == 0 and y == 0) then
       player.state = 0
       player.counter = 0
    else
       player.state = 1
       player.counter = 0
-      if (newdx < 0) player.direction = 2
-      if (newdy < 0) player.direction = 1
-      if (newdx > 0) player.direction = 0
-      if (newdy > 0) player.direction = 3
+      if (x < 0) then
+	 player.direction = 2
+      end
+      if (y < 0) then
+	 player.direction = 1
+      end
+      if (x > 0) then
+	 player.direction = 0
+      end
+      if (y > 0) then
+	 player.direction = 3
+      end
    end
-   player.dx = newdx
-   player.dy = newdy
+   player.dx = x
+   player.dy = y
    player.x += player.dx
    player.y += player.dy
+end
+
+function handleplayeroffscreen()
    if player.x > 127 then
       if activescreen.x < 126 then
 	 activescreen.x += 1
@@ -281,6 +291,12 @@ function playerupdate(self)
    end
 end
 
+function playerupdate(self)
+   local newdx,newdy = checkmovebuttons()
+   handleplayermovement(newdx,newdy)
+   handleplayeroffscreen()
+end
+
 
 function initplayer()
    player = {}
@@ -304,7 +320,8 @@ function initplayer()
 	 player.x,
 	 player.y)
    end
-   player.update = updateplayer
+   
+   player.update = playerupdate
 
    player.drawhealth = function()
       for i=1,player.maxhealth do
