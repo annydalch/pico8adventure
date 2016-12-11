@@ -1,6 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
+--ADVENTURE--
+--by Arthur Goldman--
 function _init()
    cartdata("anydalch_adventure_0")
    initvars()
@@ -8,6 +10,7 @@ function _init()
    inittextbox()
    initsword()
    menuitem(1,"save adventure",savegame)
+   menuitem(2,"delete save",deletesave)
    if (peek(0x5eff) != 0) then --[[i use the last bit of the cartdata to mark if a save exists
 if it's nonzero then a save exists and should be loaded
       otherwise init a new game]]
@@ -200,6 +203,85 @@ function initvars()
    menus = {}
 end
 
+function checkbuttons()
+   local x = 0
+   local y = 0
+   if (btn(0)) then
+      x -= 1
+   end
+   if (btn(1)) then
+      x += 1
+   end
+   if (btn(2)) then
+      y -= 1
+   end
+   if (btn(3)) then
+      y += 1
+   end
+   if (newdx == 0) then
+      y *= 2
+   end
+   if (newdy == 0) then
+      x *= 2
+   end
+   return x,y
+end
+
+function playerupdate(self)
+   local newdx,newdy = checkbuttons()
+   if (newdx == player.dx and newdy == player.dy and player.state != 0) then
+      player.counter += .2
+      player.counter %= 3
+   elseif (newdx == 0 and newdy == 0) then
+      player.state = 0
+      player.counter = 0
+   else
+      player.state = 1
+      player.counter = 0
+      if (newdx < 0) player.direction = 2
+      if (newdy < 0) player.direction = 1
+      if (newdx > 0) player.direction = 0
+      if (newdy > 0) player.direction = 3
+   end
+   player.dx = newdx
+   player.dy = newdy
+   player.x += player.dx
+   player.y += player.dy
+   if player.x > 127 then
+      if activescreen.x < 126 then
+	 activescreen.x += 1
+	 player.x %= 127
+      else
+	 player.x -= player.dx
+      end
+   end
+   if player.x < 0 then
+      if activescreen.x > 0 then
+	 activescreen.x -= 1
+	 player.x %= 127
+      else
+	 player.x -= player.dx
+      end
+   end
+   if player.y > 127 then
+      if activescreen.y < 126 then
+	 activescreen.y += 1
+	 player.y %= 127
+      else
+	 player.y -= player.dy
+      end
+   end
+   if player.y < 0 then
+      if activescreen.y > 0 then
+	 activescreen.y -= 1
+	 player.y %= 127
+      else
+	 player.y -= player.dy
+      end
+   end
+end
+
+
 function initplayer()
    player = {}
    add(entities, player)
@@ -222,66 +304,7 @@ function initplayer()
 	 player.x,
 	 player.y)
    end
-   player.update = function()
-      local newdx = 0
-      local newdy = 0
-      if (btn(0)) newdx -= 1
-      if (btn(1)) newdx += 1
-      if (btn(2)) newdy -= 1
-      if (btn(3)) newdy += 1
-      if (newdx == 0) newdy *= 2
-      if (newdy == 0) newdx *= 2
-      if (newdx == player.dx and newdy == player.dy and player.state != 0) then
-	 player.counter += .2
-	 player.counter %= 3
-      elseif (newdx == 0 and newdy == 0) then
-	 player.state = 0
-	 player.counter = 0
-      else
-	 player.state = 1
-	 player.counter = 0
-	 if (newdx < 0) player.direction = 2
-	 if (newdy < 0) player.direction = 1
-	 if (newdx > 0) player.direction = 0
-	 if (newdy > 0) player.direction = 3
-      end
-      player.dx = newdx
-      player.dy = newdy
-      player.x += player.dx
-      player.y += player.dy
-      if player.x > 127 then
-	 if activescreen.x < 126 then
-	    activescreen.x += 1
-	    player.x %= 127
-	 else
-	    player.x -= player.dx
-	 end
-      end
-      if player.x < 0 then
-	 if activescreen.x > 0 then
-	    activescreen.x -= 1
-	    player.x %= 127
-	 else
-	    player.x -= player.dx
-	 end
-      end
-      if player.y > 127 then
-	 if activescreen.y < 126 then
-	    activescreen.y += 1
-	    player.y %= 127
-	 else
-	    player.y -= player.dy
-	 end
-      end
-      if player.y < 0 then
-	 if activescreen.y > 0 then
-	    activescreen.y -= 1
-	    player.y %= 127
-	 else
-	    player.y -= player.dy
-	 end
-      end
-   end
+   player.update = updateplayer
 
    player.drawhealth = function()
       for i=1,player.maxhealth do
