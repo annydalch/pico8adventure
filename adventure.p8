@@ -47,8 +47,12 @@ function gameupdate()
    for thing in all(entities) do
       thing.update(thing)
    end
-   if (btnp(4) and not sword.active) sword.use()
-   if (btnp(5)) textbox.make("good value is hard to find. i wish you luck on your quest.")
+   if (btnp(4) and not sword.active) then
+      sword.use()
+   end
+   if (btnp(5)) then
+      textbox.make("good value is hard to find. i wish you luck on your quest.")
+   end
 end
 
 function menuupdate()
@@ -289,7 +293,6 @@ function initplayer()
       end
    end
 end
-
 
 __gfx__
 099990000999900009999000099990000880880008808800bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb0000000000000000000000000000000000000000
