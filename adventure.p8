@@ -256,6 +256,20 @@ function handleplayermovement(x,y)
    player.y += player.dy
 end
 
+function watertest(x,y)
+   local spr = mget(x / 8,y / 8)
+   return fget(spr,4)
+end
+
+function handleplayerbadtiles()
+   local seriousx = player.x + (activescreen.x * 128)
+   local seriousy = player.y + (activescreen.y * 128)
+   if (watertest(seriousx, seriousy)) player.moveback()
+   if (watertest(seriousx + player.width, seriousy)) player.moveback()
+   if (watertest(seriousx, seriousy + player.height)) player.moveback()
+   if (watertest(seriousx + player.width, seriousy + player.height)) player.moveback()
+end
+
 function handleplayeroffscreen()
    if player.x > 127 then
       if activescreen.x < 126 then
@@ -295,6 +309,7 @@ function playerupdate(self)
    local newdx,newdy = checkmovebuttons()
    handleplayermovement(newdx,newdy)
    handleplayeroffscreen()
+   handleplayerbadtiles()
 end
 
 
@@ -302,6 +317,7 @@ function initplayer()
    player = {}
    add(entities, player)
    player.width = 6
+   player.height = 8
    player.restingsprites = {0,16,32,48}
    player.movingsprites = {{0,1,2,3},
       {16,17,18,19},
@@ -319,6 +335,11 @@ function initplayer()
       spr((player.direction*16)+player.state+flr(player.counter),
 	 player.x,
 	 player.y)
+   end
+
+   player.moveback = function()
+      player.x -= player.dx
+      player.y -= player.dy
    end
    
    player.update = playerupdate
