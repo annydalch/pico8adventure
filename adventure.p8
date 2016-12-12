@@ -250,10 +250,12 @@ function handleplayermovement(x,y)
 	 player.direction = 3
       end
    end
-   player.dx = x
-   player.dy = y
-   player.x += player.dx
-   player.y += player.dy
+   if (testwaterlocations(player.x, player.y, x, y) and handleplayeroffscreen()) then
+      player.dx = x
+      player.dy = y
+      player.x += player.dx
+      player.y += player.dy
+   end
 end
 
 function watertest(x,y)
@@ -261,22 +263,23 @@ function watertest(x,y)
    return fget(spr,4)
 end
 
-function handleplayerbadtiles()
-   local seriousx = player.x + (activescreen.x * 128)
-   local seriousy = player.y + (activescreen.y * 128)
-   if (watertest(seriousx, seriousy)) player.moveback()
-   if (watertest(seriousx + player.width, seriousy)) player.moveback()
-   if (watertest(seriousx, seriousy + player.height)) player.moveback()
-   if (watertest(seriousx + player.width, seriousy + player.height)) player.moveback()
+function testwaterlocations(x, y, dx, dy)
+   local move = true
+   if (watertest(x, y)) move = false
+   if (watertest(x + player.width, y)) move = false
+   if (watertest(x, y + player.height)) move = false
+   if (watertest(x + player.width, y + player.height)) move = false
+   return move
 end
 
 function handleplayeroffscreen()
+   local move = true
    if player.x > 127 then
       if activescreen.x < 126 then
 	 activescreen.x += 1
 	 player.x %= 127
       else
-	 player.x -= player.dx
+	 move = false
       end
    end
    if player.x < 0 then
@@ -284,7 +287,7 @@ function handleplayeroffscreen()
 	 activescreen.x -= 1
 	 player.x %= 127
       else
-	 player.x -= player.dx
+	 move = false
       end
    end
    if player.y > 127 then
@@ -292,7 +295,7 @@ function handleplayeroffscreen()
 	 activescreen.y += 1
 	 player.y %= 127
       else
-	 player.y -= player.dy
+	 move = false
       end
    end
    if player.y < 0 then
@@ -300,16 +303,15 @@ function handleplayeroffscreen()
 	 activescreen.y -= 1
 	 player.y %= 127
       else
-	 player.y -= player.dy
+	 move = false
       end
    end
+   return move
 end
 
 function playerupdate(self)
    local newdx,newdy = checkmovebuttons()
    handleplayermovement(newdx,newdy)
-   handleplayeroffscreen()
-   handleplayerbadtiles()
 end
 
 
