@@ -3,142 +3,204 @@ version 8
 __lua__
 --ADVENTURE--
 --by Arthur Goldman--
-
 function _init()
-   createemptystatelists()
-   player = newplayer()
-   add(entities, player)
-   savedatadoesnotexistonstartup()
-end
-
-function _update()
-   local menuactive = testifarrayisempty(menus)
-   if menuactive then
-      updateall(entities)
-      local activetool = player.tools[player.toolindex]
-      if (btnp(4) and not activetool.active) then
-	 activetool.use(activetool)
-      end
+   cartdata("anydalch_adventure_0")
+   initvars()
+   initplayer()
+   inittextbox()
+   initsword()
+   menuitem(1,"save adventure",savegame)
+   menuitem(2,"delete save",deletesave)
+   if (peek(0x5eff) != 0) then --[[i use the last bit of the cartdata to mark if a save exists
+if it's nonzero then a save exists and should be loaded
+      otherwise init a new game]]
+      savedata()
    else
-      updateall(menus)
+      nosavedata()
    end
 end
 
 function _draw()
-   cls()
+   cls() --wouldn't be necessary if i had a whole map already
    map(activescreen.x * 16, activescreen.y * 16, 0, 0, 16, 16)
-   drawall(entities)
-   player.drawhealth(player)
-   drawall(menus)
+   drawentities()
+   player.drawhealth()
+   drawmenus()
 end
 
-function updateall(array)
-   for thing in all(array) do
-      thing.update(thing)
+function _update()
+   local listtest = false
+   for a,b in pairs(menus) do
+      listtest = true
+   end
+   if listtest then
+      menuupdate()
+   else
+      gameupdate()
    end
 end
 
-function drawall(array)
-   for thing in all(array) do
+function drawentities()
+   for thing in all(entities) do
       thing.draw(thing)
    end
 end
 
-function testifarrayisempty(array)
-   local empty = true
-   for a in all(array) do
-      empty = false
+function gameupdate()
+   for thing in all(entities) do
+      thing.update(thing)
    end
-   return empty
-end
-
---[[returns true if there is save data
-   or false if none]]
-function checksavedata()
-   if peek(0xeff) != 0 then
-      return true
-   else
-      return false
+   if (btnp(4) and not sword.active) then
+      sword.use()
+   end
+   if (btnp(5)) then
+      textbox.make("good value is hard to find. i wish you luck on your quest.")
    end
 end
 
-function saveexistsonstartup()
+function menuupdate()
+   for thing in all(menus) do
+      thing.update(thing)
+   end
+end
+
+function drawmenus()
+   for thing in all(menus) do
+      thing.draw(thing)
+   end
+end
+
+function inittextbox()
+   textbox = {}
+   textbox.x1 = 6
+   textbox.y1 = 86
+   textbox.x2 = 122
+   textbox.y2 = 122
+   textbox.advx = 120
+   textbox.advy = 120
+   textbox.bgcolor = 5
+   textbox.fgcolor = 6
+   textbox.draw = function(self)
+      rectfill(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.bgcolor)
+      rect(textbox.x1, textbox.y1, textbox.x2, textbox.y2, textbox.fgcolor)
+      for count=1,3 do
+	 local subtext = sub(self.activetext, ((count-1)*27)+1, count*27)
+	 print(subtext, textbox.x1 + 4, textbox.y1 + 4 + 6*count, textbox.fgcolor)
+      end
+      if self.counter == #self.fulltext then
+	 pset(textbox.advx, textbox.advy, textbox.fgcolor)
+      end
+   end
+   
+   textbox.update = function(self)
+      if self.counter < #self.fulltext then
+	 self.counter += 1
+	 self.activetext = sub(self.fulltext, 0, self.counter)
+      elseif btnp(4) then
+	 del(menus, self)
+      end
+   end
+
+   textbox.new = function(text)
+      local this = {}
+      this.fulltext = text
+      this.activetext = ""
+      this.counter = 0
+      this.draw = textbox.draw
+      this.update = textbox.update
+      return this
+   end
+   
+   textbox.make = function(text)
+      add(menus, textbox.new(text))
+   end
+end
+
+function savedata()
    player.x = peek(0x5e00)
    player.y = peek(0x5e01)
    player.maxhealth = peek(0x5e02)
    player.health = peek(0x5e03)
-   activescreen.x = peek(0x5e05)
+   activescreen.x = peek(0x5e04)
    activescreen.y = peek(0x5e05)
 end
 
-function savedatadoesnotexistonstartup()
+function nosavedata()
    player.x = 64
    player.y = 64
    player.maxhealth = 3
    player.health = player.maxhealth
    activescreen.x = 0
    activescreen.y = 0
-   add(player.tools, newsword())
 end
 
-function createemptystatelists()
-   entities = {}
-   menus = {}
-   activescreen = {}
+function savegame()
+   poke(0x5e00,player.x)
+   poke(0x5e01,player.y)
+   poke(0x5e02,player.maxhealth)
+   poke(0x5e03,player.health)
+   poke(0x5e04,activescreen.x)
+   poke(0x5e05,activescreen.y)
+   poke(0x5eff,1)
 end
 
-function drawsword(this)
-   if player.direction == 0 then
-      this.rightsprite(player.x + player.width,
-		       player.y)
-   end
-   if player.direction == 1 then
-      this.upsprite(player.x,
-		    player.y - this.length - 1)
-   end
-   if player.direction == 2 then
-      this.leftsprite(player.x - this.length - 1,
-		      player.y)
-   end
-   if player.direction == 3 then
-      this.downsprite(player.x,
-		      player.y + player.height)
-   end
+function deletesave()
+   poke(0x5eff,0)
 end
-function updatesword(this)
-   this.counter -= 1
-   if (this.counter == 0) then
-      del(entities, this)
-      this.active = false
-   end
-end
-function usesword(this)
-   this.active = true
-   add(entities, this)
-   this.counter = this.swingtime
-end
-function newsword()
-   local this = {}
-   this.length = 7
-   this.active = false
-   this.counter = 0
-   this.swingtime = 6
-   this.rightsprite = function(x, y)
+
+function initsword()
+   sword = {}
+   sword.length = 7
+   sword.active = false
+   sword.counter = 0
+   sword.swingtime = 6
+   sword.rightsprite = function(x,y)
       spr(21, x, y)
    end
-   this.leftsprite = function(x, y)
+   sword.leftsprite = function(x,y)
       spr(21, x, y, 1, 1, true)
    end
-   this.upsprite = function(x, y)
+   sword.upsprite = function(x,y)
       spr(20, x, y)
    end
-   this.downsprite = function(x, y)
+   sword.downsprite = function(x,y)
       spr(20, x, y, 1, 1, false, true)
    end
-   this.draw = drawsword
-   this.update = updatesword
-   this.use = usesword
-   return this
+   
+   sword.draw = function()
+      if player.direction == 0 then
+	 sword.rightsprite(player.x + player.width,player.y)
+      end
+      if player.direction == 1 then
+	 sword.upsprite(player.x,player.y - sword.length - 1)
+      end
+      if player.direction == 2 then
+	 sword.leftsprite(player.x - sword.length - 1, player.y)
+      end
+      if player.direction == 3 then
+	 sword.downsprite(player.x,player.y+8)
+      end
+   end
+   
+   sword.update = function()
+      sword.counter -= 1
+      if (sword.counter == 0) then
+	 del(entities, sword)
+	 sword.active = false
+      end
+   end
+   
+   sword.use = function()
+      sword.active = true
+      add(entities, sword)
+      sword.counter = sword.swingtime
+   end
+end
+
+function initvars()
+   activescreen = {}
+   entities = {}
+   menus = {}
 end
 
 function checkmovebuttons()
@@ -164,177 +226,135 @@ function checkmovebuttons()
    end
    return x,y
 end
-function drawplayer(self)
-   spr((self.direction * 16) + self.state + flr(self.counter),
-      self.x,
-      self.y)
-end
-function drawplayerhealth(self)
-   for i=1, self.maxhealth do
-      if i <= self.health then
-	 spr(4, (i * 8) - 7, 1)
-      else
-	 spr(5, (i * 8) - 7, 1)
+
+function handleplayermovement(x,y)
+   if (x == player.dx and y == player.dy and player.state != 0) then
+      player.counter += .2
+      player.counter %= 3
+   elseif (x == 0 and y == 0) then
+      player.state = 0
+      player.counter = 0
+   else
+      player.state = 1
+      player.counter = 0
+      if (x < 0) then
+	 player.direction = 2
+      end
+      if (y < 0) then
+	 player.direction = 1
+      end
+      if (x > 0) then
+	 player.direction = 0
+      end
+      if (y > 0) then
+	 player.direction = 3
       end
    end
-end
-function watertest(x, y)
-   local spr = mget((x / 8) + (activescreen.x * 16),
-      (y / 8) + (activescreen.y * 16))
-   return fget(spr, 4)
-end
-function checklocationforwater(entity, x, y)
-   if watertest(x, y) then
-      return false
-   elseif watertest(x + entity.width, y) then
-      return false
-   elseif watertest(x, y + entity.height) then
-      return false
-   elseif watertest(x + entity.width, y + entity.height) then
-      return false
-   else
-      return true
+   if (testwaterlocations(player.x, player.y, x, y) and handleplayeroffscreen()) then
+      player.dx = x
+      player.dy = y
+      player.x += player.dx
+      player.y += player.dy
    end
-end
-function playersetdirection(dx, dy)
-   local direction = 0
-   if (dx < 0) then
-      direction = 2
-   end
-   if (dy < 0) then
-      direction = 1
-   end
-   if (dx > 0) then
-      direction = 0
-   end
-   if (dy > 0) then
-      direction = 3
-   end
-   return direction
-end
-function playeradvancestate(self, dx, dy)
-   if (dx == self.dx and dy == self.dy and self.state != 0) then
-      self.counter += .2
-      self.counter %= 3
-      self.direction = playersetdirection(dx, dy)
-   elseif (dx == 0 and dy == 0) then
-      self.state = 0
-      self.counter = 0
-   else
-      self.state = 1
-      self.counter = 0
-      self.direction = playersetdirection(dx, dy)
-   end
-end
-function playerwrapscreens(self)
-   if self.x > 127 then
-      activescreen.x += 1
-      self.x %= 127
-   end
-   if self.x < 0 then
-      activescreen.x -= 1
-      self.x %= 127
-   end
-   if self.y > 127 then
-      activescreen.y += 1
-      self.y %= 127
-   end
-   if self.y < 0 then
-      activescreen.y -= 1
-      self.y %= 127
-   end
-end
-function updateplayer(self)
-   local movx, movy = checkmovebuttons()
-   if (checklocationforwater(self,
-			     self.x + movx,
-			     self.y + movy)) then
-      self.x += movx
-      self.y += movy
-      playeradvancestate(self, movx, movy)
-      self.dx = movx
-      self.dy = movy
-   end
-   playerwrapscreens(self)
-end
-function drawplayer(self)
-   spr((self.direction * 16) + self.state + flr(self.counter),
-      self.x,
-      self.y)
-end
-function newplayer()
-   local player = {}
-   player.width = 6
-   player.height = 8
-   player.state = 0
-   player.direction = 0
-   player.dx = 0
-   player.dy = 0
-   player.draw = drawplayer
-   player.drawhealth = drawplayerhealth
-   player.update = updateplayer
-   player.draw = drawplayer
-   player.tools = {}
-   player.toolindex = 1
-   return player
 end
 
-function drawtextbox(self)
-   rectfill(self.x1,
-	    self.y1,
-	    self.x2,
-	    self.y2,
-	    self.bgcolor)
-   rect(self.x1,
-	self.y1,
-	self.x2,
-	self.y2,
-	self.fgcolor)
-   for count = 1, 3 do
-      local subtext = sub(self.activetext,
-			  ((count - 1) * 27) + 1,
-			  count * 27)
-      print(subtext,
-	    self.x1 + 4,
-	    self.y1 + 4 + 6 * count,
-	    self.fgcolor)
-   end
-   if self.counter == #self.fulltext then
-      pset(self.advx,
-	   self.advy,
-	   self.fgcolor)
-   end
+function watertest(x,y)
+   local spr = mget(x / 8,y / 8)
+   return fget(spr,4)
 end
-function updatetextbox(self)
-   if self.counter < #self.fulltext then
-      self.counter += 1
-      self.activetext = sub(self.fulltext,
-			    0,
-			    self.counter)
-   elseif btnp(4) then
-      del(menus, self)
+
+function testwaterlocations(x, y, dx, dy)
+   local move = true
+   if (watertest(x, y)) move = false
+   if (watertest(x + player.width, y)) move = false
+   if (watertest(x, y + player.height)) move = false
+   if (watertest(x + player.width, y + player.height)) move = false
+   return move
+end
+
+function handleplayeroffscreen()
+   local move = true
+   if player.x > 127 then
+      if activescreen.x < 126 then
+	 activescreen.x += 1
+	 player.x %= 127
+      else
+	 move = false
+      end
    end
+   if player.x < 0 then
+      if activescreen.x > 0 then
+	 activescreen.x -= 1
+	 player.x %= 127
+      else
+	 move = false
+      end
+   end
+   if player.y > 127 then
+      if activescreen.y < 126 then
+	 activescreen.y += 1
+	 player.y %= 127
+      else
+	 move = false
+      end
+   end
+   if player.y < 0 then
+      if activescreen.y > 0 then
+	 activescreen.y -= 1
+	 player.y %= 127
+      else
+	 move = false
+      end
+   end
+   return move
 end
-function maketextbox(text)
-   local textbox = newtextbox(text)
-   add(menus, textbox)
+
+function playerupdate(self)
+   local newdx,newdy = checkmovebuttons()
+   handleplayermovement(newdx,newdy)
 end
-function newtextbox(text)
-   local textbox = {}
-   textbox.counter = 0
-   textbox.x1 = 6
-   textbox.y1 = 86
-   textbox.x2 = 122
-   textbox.y2 = 122
-   textbox.advx = 120
-   textbox.advy = 120
-   textbox.bgcolor = 5
-   textbox.fgcolor = 6
-   textbox.fulltext = text
-   textbox.activetext = ""
-   textbox.update = updatetextbox
-   textbox.draw = drawtextbox
-   return textbox
+
+
+function initplayer()
+   player = {}
+   add(entities, player)
+   player.width = 6
+   player.height = 8
+   player.restingsprites = {0,16,32,48}
+   player.movingsprites = {{0,1,2,3},
+      {16,17,18,19},
+      {32,33,34,35},
+      {48,49,50,51}}
+   --0:resting 1:moving
+   player.state = 0
+   --0:right, ccw until 3
+   player.direction = 0
+   --used for frames and stuff
+   player.counter = 0
+   player.dx = 0
+   player.dy = 0
+   player.draw = function()
+      spr((player.direction*16)+player.state+flr(player.counter),
+	 player.x,
+	 player.y)
+   end
+
+   player.moveback = function()
+      player.x -= player.dx
+      player.y -= player.dy
+   end
+   
+   player.update = playerupdate
+
+   player.drawhealth = function()
+      for i=1,player.maxhealth do
+	 if i <= player.health then
+	    spr(4,(i*8)-7,1)
+	 else
+	    spr(5,(i*8)-7,1)
+	 end
+      end
+   end
 end
 
 __gfx__
